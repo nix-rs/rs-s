@@ -1,66 +1,53 @@
-use rusqlite::{Connection, Result};
-
-#[derive(Debug)]
-struct Person {
-    id: i32,
-    name: String,
-    data: Option<Vec<u8>>,
-}
-
-fn main() -> Result<()> {
-    let path = "./check-db.db3";
-    let conn = Connection::open(path)?;
-
-    conn.execute(
-        "CREATE TABLE person (
-            id  INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            data BLOB
-        )",
-        (),
-    )?;
-
-    let me = Person {
-        id: 0,
-        name: "Stevme".to_string(),
-        data: None,
-    };
-
-    conn.execute(
-        "
-            INSERT INTO person (name, data) VALUES (?1, ?2)",
-        (&me.name, &me.data),
-    )?;
-
-    let mut stmt = conn.prepare(
-        "
-        SELECT id, name, data FROM person",
-    )?;
-
-    let person_iter = stmt.query_map([], |row| {
-        Ok(Person {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            data: row.get(2)?,
-        })
-    })?;
-
-    for person in person_iter {
-        println!("FOund person  {:?}", person.unwrap());
-    }
-
-    Ok(())
-}
-
 //use rss::Channel;
 //use std::error::Error;
 
+use clap::Parser;
+
+mod cli;
+mod database;
+
+use crate::cli::Cli;
+use crate::database::connect;
+
 // TODO
-// - Add rss sites ( also check that link is valid before adding to database )
-// - View all the rss sites
-// - Remove rss sites
-//
 // - Fetching
+// -- Simple `$ rs-s` run will fetch all the urls or return error like no
+//      added please add the links 
+
+
+// POST PROCESSING
+// -- Please set the real file location for the database path
+
+
+fn main() {
+
+    let cli = Cli::parse();
+    //println!("rss: {:?}",&cli.links);
+
+    if let Some(links) = &cli.links {
+        let _ = connect::add_links(links);
+    }
+
+    if let Some(update) = &cli.update {
+        let _ = connect::update_links(update);
+    }   
+
+    if let Some(delete) = &cli.delete {
+        let _ = connect::delete_links(delete);
+    }
+
+    // ERROR ERROR THIS IS NOT WORKING
+    if let Some(_views) = cli.view {
+        let _ = connect::view_links();
+    }
+
+
+}
+
+
+
+
+
 
 /*
 async fn exam() -> Result<Channel, Box<dyn Error>> {
@@ -84,6 +71,25 @@ use owo_colors::OwoColorize;
 
 fn main() {
     println!("My number is {:#x}!", 10.green());
+}
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add() {
+        assert_eq!(add(1,2), 3);
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_add() {
+        assert_ne!(add(1,99), 100);
+    }
 }
 
 */
